@@ -7,9 +7,14 @@ use murasaki::tts::TTS;
 use nostr_sdk::prelude::FromPkStr;
 use nostr_sdk::secp256k1::XOnlyPublicKey;
 use rodio::{OutputStream, Sink};
+use std::collections::HashMap;
 use std::collections::HashSet;
+use std::fs::File;
+use std::io::BufReader;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use std::{env, fs};
+
+use serde::{Deserialize, Serialize};
 
 use nostr_sdk::{self, Client, Metadata};
 use nostr_sdk::{Filter, Keys, Kind, RelayPoolNotification};
@@ -212,8 +217,9 @@ impl Murasaki {
             return Ok(());
         }
         let md = self.get_metadata_with_cache(&event.pubkey).await;
+        let speaker = set_speaker((&event.pubkey).to_string()); //rand::thread_rng().gen_range(0..21);
         let text = self.text_transformer.transform_note(&event, &md);
-        self.tts.say(self.config.speaker, &text).await
+        self.tts.say(speaker, &text).await
     }
 
     async fn handle_reaction(&mut self, event: &nostr_sdk::Event) -> anyhow::Result<()> {
@@ -225,6 +231,25 @@ impl Murasaki {
         info!("reaction received {}", event.content);
         let text = self.text_transformer.transform_reaction(&event, &metadata);
         self.tts.say(self.config.speaker, &text).await
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct SpeakerData {
+    spk: u32,
+    memo: String,
+}
+
+fn set_speaker(pubkey: String) -> u32 {
+    let json_file = File::open("speakers.json").unwrap();
+    let reader = BufReader::new(json_file);
+    let speakers: HashMap<String, SpeakerData> = serde_json::from_reader(reader).unwrap();
+
+    if let Some(speaker_data) = speakers.get(&pubkey) {
+        return speaker_data.spk;
+    } else {
+        // デフォルトのスピーカーを返す
+        return 0;
     }
 }
 
