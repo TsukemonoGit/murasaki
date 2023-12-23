@@ -23,7 +23,7 @@ impl TTS {
         }
     }
 
-    pub async fn say(&self, speaker: u32, text: &String) -> anyhow::Result<()> {
+    pub async fn say(&self, speaker: u32, text: &String, speed: f32) -> anyhow::Result<()> {
         info!("📣 {}", text);
 
         let query = self
@@ -43,6 +43,7 @@ impl TTS {
                     let source = Decoder::new_wav(file);
                     match source {
                         Ok(source) => {
+                            self.sink.set_speed(speed);
                             self.sink.append(source);
                             return Ok(());
                         }

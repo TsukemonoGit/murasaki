@@ -144,7 +144,11 @@ impl Murasaki {
             "接続しました。ユニバースモードです。"
         };
         self.tts
-            .say(self.config.speaker, &connect_message.to_string())
+            .say(
+                self.config.speaker,
+                &connect_message.to_string(),
+                self.config.voicevox.default_speed,
+            )
             .await?;
 
         loop {
@@ -219,7 +223,9 @@ impl Murasaki {
         let md = self.get_metadata_with_cache(&event.pubkey).await;
         let speaker = set_speaker((&event.pubkey).to_string()); //rand::thread_rng().gen_range(0..21);
         let text = self.text_transformer.transform_note(&event, &md);
-        self.tts.say(speaker, &text).await
+        self.tts
+            .say(speaker, &text, self.config.voicevox.default_speed)
+            .await
     }
 
     async fn handle_reaction(&mut self, event: &nostr_sdk::Event) -> anyhow::Result<()> {
@@ -230,7 +236,13 @@ impl Murasaki {
         let metadata = self.get_metadata_with_cache(&event.pubkey).await;
         info!("reaction received {}", event.content);
         let text = self.text_transformer.transform_reaction(&event, &metadata);
-        self.tts.say(self.config.speaker, &text).await
+        self.tts
+            .say(
+                self.config.speaker,
+                &text,
+                self.config.voicevox.default_speed,
+            )
+            .await
     }
 }
 
