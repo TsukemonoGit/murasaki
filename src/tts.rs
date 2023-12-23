@@ -43,7 +43,7 @@ impl TTS {
                     let source = Decoder::new_wav(file);
                     match source {
                         Ok(source) => {
-                            self.sink.set_speed(speed);
+                            self.sink.set_speed(speed); //これボイスボックスのスペードかえるやつじゃなくてオーディオのほうのスピードチェンジのよかん
                             self.sink.append(source);
                             return Ok(());
                         }
