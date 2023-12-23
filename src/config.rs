@@ -4,7 +4,7 @@ use serde::Deserialize;
 pub struct VoiceVoxConfig {
     pub url: String,
     pub max_retry: u64,
-    pub default_speed: f32,
+    pub default_speed: f64,
 }
 
 #[derive(Deserialize, Debug, Clone)]
