@@ -22,9 +22,11 @@ impl TTS {
             sink,
         }
     }
-
+    #[allow(non_snake_case)]
     pub async fn say(&self, speaker: u32, text: &String, speed: f64) -> anyhow::Result<()> {
-        info!("📣 ({}) {}", speed, text);
+        let speedScale = speed + (self.sink.len() as f64 / 10.0);
+        info!("📣 ({}) {}", speedScale, text);
+        //println!("len: {}", len);
 
         let query = self
             .vv
@@ -33,7 +35,7 @@ impl TTS {
             .context("failed in audio_query")?;
         // JSON文字列をAudioQueryオブジェクトに変換
         let mut audio_query: AudioQuery = serde_json::from_str(&query)?;
-        audio_query.speedScale = speed;
+        audio_query.speedScale = speedScale;
         // 修正したValueをJSON文字列に変換
         let modified_json: String = serde_json::to_string(&audio_query)?;
 
@@ -50,6 +52,7 @@ impl TTS {
                         Ok(source) => {
                             // self.sink.set_speed(speed); //これボイスボックスのスペードかえるやつじゃなくてオーディオのほうのスピードチェンジのよかん
                             self.sink.append(source);
+
                             return Ok(());
                         }
                         Err(e) => {

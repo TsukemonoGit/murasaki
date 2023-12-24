@@ -155,7 +155,7 @@ impl Murasaki {
             let mut notifications = self.nostr_client.notifications();
             while let Ok(notification) = notifications.recv().await {
                 if let RelayPoolNotification::Event(_url, event) = notification {
-                    if let Err(e) = self.handle_event(&event, notifications.len()).await {
+                    if let Err(e) = self.handle_event(&event).await {
                         warn!("failed to handle event: {}", e);
                     }
                 }
@@ -163,13 +163,13 @@ impl Murasaki {
         }
     }
 
-    async fn handle_event(&mut self, event: &nostr_sdk::Event, len: usize) -> anyhow::Result<()> {
-        let speed: f64 = (self.config.voicevox.default_speed + len as f64 / 5.0)
-            .min(self.config.voicevox.default_speed + 1.0);
+    async fn handle_event(&mut self, event: &nostr_sdk::Event) -> anyhow::Result<()> {
+        // let speed: f64 = (self.config.voicevox.default_speed + len as f64 / 5.0)
+        //     .min(self.config.voicevox.default_speed + 1.0);
 
         match event.kind {
             Kind::TextNote => {
-                self.handle_textnote(&event, speed).await?;
+                self.handle_textnote(&event).await?;
             }
             Kind::ContactList => {
                 if event.pubkey == self.nostr_client.keys().public_key() {
@@ -180,7 +180,7 @@ impl Murasaki {
                 }
             }
             Kind::Reaction => {
-                self.handle_reaction(&event, speed).await?;
+                self.handle_reaction(&event).await?;
             }
             _ => return Ok(()),
         }
@@ -218,11 +218,7 @@ impl Murasaki {
         }
     }
 
-    async fn handle_textnote(
-        &mut self,
-        event: &nostr_sdk::Event,
-        speed: f64,
-    ) -> anyhow::Result<()> {
+    async fn handle_textnote(&mut self, event: &nostr_sdk::Event) -> anyhow::Result<()> {
         if self.is_old(event) {
             warn!("skipping old event {:?}", event);
             return Ok(());
@@ -232,14 +228,12 @@ impl Murasaki {
         let speaker = set_speaker((&event.pubkey).to_string()); //rand::thread_rng().gen_range(0..21);
         let text = self.text_transformer.transform_note(&event, &md);
 
-        self.tts.say(speaker, &text, speed).await
+        self.tts
+            .say(speaker, &text, self.config.voicevox.default_speed)
+            .await
     }
 
-    async fn handle_reaction(
-        &mut self,
-        event: &nostr_sdk::Event,
-        speed: f64,
-    ) -> anyhow::Result<()> {
+    async fn handle_reaction(&mut self, event: &nostr_sdk::Event) -> anyhow::Result<()> {
         if self.is_old(event) {
             warn!("skipping old event {:?}", event);
             return Ok(());
@@ -248,7 +242,13 @@ impl Murasaki {
         info!("reaction received {}", event.content);
         let text = self.text_transformer.transform_reaction(&event, &metadata);
 
-        self.tts.say(self.config.speaker, &text, speed).await
+        self.tts
+            .say(
+                self.config.speaker,
+                &text,
+                self.config.voicevox.default_speed,
+            )
+            .await
     }
 }
 
