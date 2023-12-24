@@ -4,7 +4,7 @@ use rodio::Decoder;
 use std::io::{BufReader, Cursor};
 
 use crate::config::VoiceVoxConfig;
-use crate::voicevox;
+use crate::voicevox::{self, AudioQuery};
 
 pub struct TTS {
     vv: voicevox::Client,
@@ -22,18 +22,27 @@ impl TTS {
             sink,
         }
     }
-
-    pub async fn say(&self, speaker: u32, text: &String) -> anyhow::Result<()> {
-        info!("📣 {}", text);
+    #[allow(non_snake_case)]
+    pub async fn say(&self, speaker: u32, text: &String, speed: f64) -> anyhow::Result<()> {
+        let speedScale = speed + (self.sink.len() as f64 / 10.0);
+        let speed_scale_formatted = format!("{:.1}", speedScale);
+        info!("📣 ({}) {}", speed_scale_formatted, text);
+        //info!("📣 ({}) {}", speedScale, text);
+        //println!("len: {}", len);
 
         let query = self
             .vv
             .audio_query(speaker, &text)
             .await
             .context("failed in audio_query")?;
+        // JSON文字列をAudioQueryオブジェクトに変換
+        let mut audio_query: AudioQuery = serde_json::from_str(&query)?;
+        audio_query.speedScale = speedScale;
+        // 修正したValueをJSON文字列に変換
+        let modified_json: String = serde_json::to_string(&audio_query)?;
 
         for _retry in 0..self.max_retry {
-            match self.vv.synthesis(speaker, &query).await {
+            match self.vv.synthesis(speaker, &modified_json).await {
                 Err(e) => {
                     warn!("error in synthesis: {}", e);
                 }
@@ -43,7 +52,9 @@ impl TTS {
                     let source = Decoder::new_wav(file);
                     match source {
                         Ok(source) => {
+                            // self.sink.set_speed(speed); //これボイスボックスのスペードかえるやつじゃなくてオーディオのほうのスピードチェンジのよかん
                             self.sink.append(source);
+
                             return Ok(());
                         }
                         Err(e) => {
