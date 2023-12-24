@@ -164,7 +164,7 @@ impl Murasaki {
     }
 
     async fn handle_event(&mut self, event: &nostr_sdk::Event, len: usize) -> anyhow::Result<()> {
-        let speed: f64 = (self.config.voicevox.default_speed * (1.0 + len as f64 / 5.0))
+        let speed: f64 = (self.config.voicevox.default_speed + len as f64 / 5.0)
             .min(self.config.voicevox.default_speed + 1.0);
 
         match event.kind {
