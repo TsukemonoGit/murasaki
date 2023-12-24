@@ -24,7 +24,7 @@ impl TTS {
     }
 
     pub async fn say(&self, speaker: u32, text: &String, speed: f64) -> anyhow::Result<()> {
-        info!("📣 {}", text);
+        info!("📣 ({}) {}", speed, text);
 
         let query = self
             .vv
