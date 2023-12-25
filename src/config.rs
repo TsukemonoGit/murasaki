@@ -13,6 +13,8 @@ pub struct TransformConfig {
     pub max_length: usize,
     pub ellipsis_text: String,
     pub read_name: bool,
+    pub max_name_length: usize,
+    pub ellipsis_name_text: String,
 }
 
 #[derive(Deserialize, Debug)]

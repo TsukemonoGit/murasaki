@@ -15,15 +15,25 @@ impl Transformer {
         }
     }
 
-    fn metadata_to_name(metadata: &Metadata) -> Option<String> {
+    fn metadata_to_name(&self, metadata: &Metadata) -> Option<String> {
+        //   let len = self.config.max_name_length;
         if let Some(display_name) = &metadata.display_name {
-            if display_name != "" {
-                return Some(display_name.clone());
+            if !display_name.is_empty() {
+                return Some(self.truncate_long(
+                    display_name,
+                    self.config.max_name_length,
+                    self.config.ellipsis_name_text.as_str(),
+                ));
             }
         }
+
         if let Some(name) = &metadata.name {
-            if name != "" {
-                return Some(name.clone());
+            if !name.is_empty() {
+                return Some(self.truncate_long(
+                    name,
+                    self.config.max_name_length,
+                    self.config.ellipsis_name_text.as_str(),
+                ));
             }
         }
 
@@ -37,7 +47,7 @@ impl Transformer {
     ) -> String {
         let from: String = metadata
             .as_ref()
-            .and_then(|md| Transformer::metadata_to_name(&md))
+            .and_then(|md| Transformer::metadata_to_name(&self, &md))
             .and_then(|name| Some(format!("{}さんから", name)))
             .unwrap_or("".to_string());
         format!("{}リアクション受信。", from)
@@ -46,12 +56,16 @@ impl Transformer {
     pub fn transform_note(&self, event: &nostr_sdk::Event, metadata: &Option<Metadata>) -> String {
         let from = metadata
             .as_ref()
-            .and_then(|md| Transformer::metadata_to_name(&md))
+            .and_then(|md| Transformer::metadata_to_name(&self, &md))
             .and_then(|name| Some(format!("{}さん、", name)))
             .unwrap_or("".to_string());
 
         let text = self.replace_urls(&event.content);
-        let text = self.truncate_long(text);
+        let text = self.truncate_long(
+            text.as_str(),
+            self.config.max_length,
+            self.config.ellipsis_text.as_str(),
+        );
         let text = Self::truncate_nip19(text);
 
         from + text.as_str()
@@ -67,14 +81,11 @@ impl Transformer {
         text
     }
 
-    fn truncate_long(&self, text: String) -> String {
-        if text.chars().count() > self.config.max_length {
-            text.chars()
-                .take(self.config.max_length)
-                .collect::<String>()
-                + &self.config.ellipsis_text
+    fn truncate_long(&self, text: &str, max_length: usize, ellipsis_text: &str) -> String {
+        if text.chars().count() > max_length {
+            text.chars().take(max_length).collect::<String>() + &ellipsis_text
         } else {
-            text
+            text.to_owned()
         }
     }
 

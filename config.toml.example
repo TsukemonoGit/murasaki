@@ -20,3 +20,5 @@ url_alternative_text = " URL "
 max_length = 140
 ellipsis_text = " 以下略"
 read_name = true
+max_name_length = 8
+ellipsis_name_text=""
