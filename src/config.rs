@@ -7,6 +7,7 @@ pub struct VoiceVoxConfig {
     pub default_speed: f64,
 }
 
+#[allow(non_snake_case)]
 #[derive(Deserialize, Debug, Clone)]
 pub struct TransformConfig {
     pub url_alternative_text: String,
@@ -15,6 +16,7 @@ pub struct TransformConfig {
     pub read_name: bool,
     pub max_name_length: usize,
     pub ellipsis_name_text: String,
+    pub read_NIP36: bool,
 }
 
 #[derive(Deserialize, Debug)]

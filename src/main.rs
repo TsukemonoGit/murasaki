@@ -6,7 +6,9 @@ use murasaki::transformer::Transformer;
 use murasaki::tts::TTS;
 use nostr_sdk::prelude::FromPkStr;
 use nostr_sdk::secp256k1::XOnlyPublicKey;
+use nostr_sdk::Tag;
 use rodio::{OutputStream, Sink};
+
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::fs::File;
@@ -171,7 +173,22 @@ impl Murasaki {
 
         match event.kind {
             Kind::TextNote => {
-                self.handle_textnote(&event).await?;
+                // println!(
+                //     "{}",
+                //     !event
+                //         .tags
+                //         .iter()
+                //         .any(|tag| matches!(tag, nostr_sdk::Tag::ContentWarning { .. }))
+                // );
+                if self.config.transform.read_NIP36
+                    || event.tags.is_empty()
+                    || !event
+                        .tags
+                        .iter()
+                        .any(|tag| matches!(tag, nostr_sdk::Tag::ContentWarning { .. }))
+                {
+                    self.handle_textnote(&event).await?;
+                }
             }
             Kind::ContactList => {
                 if event.pubkey == self.nostr_client.keys().public_key() {
