@@ -24,7 +24,7 @@ impl TTS {
     }
     #[allow(non_snake_case)]
     pub async fn say(&self, speaker: u32, text: &String, speed: f64) -> anyhow::Result<()> {
-        let speedScale = speed + (self.sink.len() as f64 / 10.0);
+        let speedScale = (speed + (self.sink.len() as f64 / 10.0)).min(1.8);
         let speed_scale_formatted = format!("{:.1}", speedScale);
         info!("📣 ({}) {}", speed_scale_formatted, text);
         //info!("📣 ({}) {}", speedScale, text);

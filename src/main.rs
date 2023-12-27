@@ -6,13 +6,12 @@ use murasaki::transformer::Transformer;
 use murasaki::tts::TTS;
 use nostr_sdk::prelude::FromPkStr;
 use nostr_sdk::secp256k1::XOnlyPublicKey;
-use nostr_sdk::Tag;
 use rodio::{OutputStream, Sink};
 
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::fs::File;
-use std::io::BufReader;
+// use std::fs::File;
+// use std::io::BufReader;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use std::{env, fs};
 
@@ -61,6 +60,8 @@ struct Murasaki {
     text_transformer: Transformer,
     following_mode: bool,
     pubkey_provided: bool,
+    speakers: HashMap<String, SpeakerData>,
+    ng_words: HashSet<String>,
 }
 
 impl Murasaki {
@@ -82,6 +83,14 @@ impl Murasaki {
 
         let text_transformer = Transformer::new(&config.transform);
 
+        // スピーカーデータを読み込む
+        let speakers_file_path = "speakers.json"; // スピーカーデータファイルのパスを適切に設定する
+        let speakers = read_speakers_file(speakers_file_path);
+
+        // NGWordsファイルを読み込む
+        let ng_words_file_path = "NGWords.txt"; // NGWordsファイルのパスを適切に設定する
+        let ng_words = read_ng_words_file(ng_words_file_path);
+
         Ok(Self {
             config,
             tts,
@@ -90,6 +99,8 @@ impl Murasaki {
             text_transformer,
             following_mode,
             pubkey_provided,
+            speakers,
+            ng_words,
         })
     }
 
@@ -173,13 +184,6 @@ impl Murasaki {
 
         match event.kind {
             Kind::TextNote => {
-                // println!(
-                //     "{}",
-                //     !event
-                //         .tags
-                //         .iter()
-                //         .any(|tag| matches!(tag, nostr_sdk::Tag::ContentWarning { .. }))
-                // );
                 if self.config.transform.read_NIP36
                     || event.tags.is_empty()
                     || !event
@@ -187,7 +191,18 @@ impl Murasaki {
                         .iter()
                         .any(|tag| matches!(tag, nostr_sdk::Tag::ContentWarning { .. }))
                 {
-                    self.handle_textnote(&event).await?;
+                    // NGワードが含まれているかチェック
+                    if self
+                        .ng_words
+                        .iter()
+                        .any(|ng_word| event.content.contains(ng_word))
+                    {
+                        // NGワードが含まれる場合の処理（スキップするなど）
+                        info!("NGワードが含まれています");
+                        return Ok(());
+                    } else {
+                        self.handle_textnote(&event).await?;
+                    }
                 }
             }
             Kind::ContactList => {
@@ -244,7 +259,7 @@ impl Murasaki {
         }
 
         let md = self.get_metadata_with_cache(&event.pubkey).await;
-        let speaker = set_speaker((&event.pubkey).to_string()); //rand::thread_rng().gen_range(0..21);
+        let speaker = self.set_speaker((&event.pubkey).to_string());
         let text = self.text_transformer.transform_note(&event, &md);
 
         self.tts
@@ -269,6 +284,14 @@ impl Murasaki {
             )
             .await
     }
+    fn set_speaker(&mut self, pubkey: String) -> u32 {
+        if let Some(speaker_data) = self.speakers.get(&pubkey) {
+            return speaker_data.spk;
+        } else {
+            // デフォルトのスピーカーを返す
+            return 0;
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -277,17 +300,20 @@ struct SpeakerData {
     memo: String,
 }
 
-fn set_speaker(pubkey: String) -> u32 {
-    let json_file = File::open("speakers.json").unwrap();
-    let reader = BufReader::new(json_file);
-    let speakers: HashMap<String, SpeakerData> = serde_json::from_reader(reader).unwrap();
+// speakers.jsonファイルを読み込んでHashMapに変換する関数
+fn read_speakers_file(file_path: &str) -> HashMap<String, SpeakerData> {
+    fs::read_to_string(file_path)
+        .map(|contents| serde_json::from_str(&contents).unwrap_or_default())
+        .unwrap_or_default()
+}
 
-    if let Some(speaker_data) = speakers.get(&pubkey) {
-        return speaker_data.spk;
-    } else {
-        // デフォルトのスピーカーを返す
-        return 0;
-    }
+// NGWordsファイルを読み込んでHashSetに変換する関数
+fn read_ng_words_file(file_path: &str) -> HashSet<String> {
+    fs::read_to_string(file_path)
+        .unwrap_or_default()
+        .lines()
+        .map(|s| s.trim().to_lowercase()) // 必要に応じて大文字小文字を区別するなどの変更を行う
+        .collect()
 }
 
 #[tokio::main]
