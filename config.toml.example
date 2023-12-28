@@ -14,6 +14,7 @@ old_threshold_seconds = 300
 url = "http://localhost:50021"
 max_retry = 3
 default_speed=1.0
+max_speed = 1.7
 
 [transform]
 url_alternative_text = " URL "

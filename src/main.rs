@@ -162,7 +162,7 @@ impl Murasaki {
             .say(
                 self.config.speaker,
                 &connect_message.to_string(),
-                self.config.voicevox.default_speed,
+                &self.config.voicevox,
             )
             .await?;
 
@@ -262,9 +262,7 @@ impl Murasaki {
         let speaker = self.set_speaker((&event.pubkey).to_string());
         let text = self.text_transformer.transform_note(&event, &md);
 
-        self.tts
-            .say(speaker, &text, self.config.voicevox.default_speed)
-            .await
+        self.tts.say(speaker, &text, &self.config.voicevox).await
     }
 
     async fn handle_reaction(&mut self, event: &nostr_sdk::Event) -> anyhow::Result<()> {
@@ -277,11 +275,7 @@ impl Murasaki {
         let text = self.text_transformer.transform_reaction(&event, &metadata);
 
         self.tts
-            .say(
-                self.config.speaker,
-                &text,
-                self.config.voicevox.default_speed,
-            )
+            .say(self.config.speaker, &text, &self.config.voicevox)
             .await
     }
     fn set_speaker(&mut self, pubkey: String) -> u32 {

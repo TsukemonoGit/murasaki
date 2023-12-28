@@ -5,6 +5,7 @@ pub struct VoiceVoxConfig {
     pub url: String,
     pub max_retry: u64,
     pub default_speed: f64,
+    pub max_speed: f64,
 }
 
 #[allow(non_snake_case)]

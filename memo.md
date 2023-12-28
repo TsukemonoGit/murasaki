@@ -2,13 +2,13 @@
 
 - pubkey ごとのスピーカー設定（speakers.json）
 
-- デフォルト話速の設定を追加
+- デフォルト話速の設定を追加 (default_speed)
 
-- 未読み上げのノートがたまるほど話速が上がる
+- 未読み上げのノートがたまるほど話速が上がる (max_speed)
 
-- name の読み上げ文字数を追加
+- name の読み上げ文字数を追加 (max_name_length, ellipsis_name_text)
 
-- NIP-36 の読み上げ有無
+- NIP-36 の読み上げ有無 (read_NIP36)
 
 - コンテントに特定のワードが含まれる場合読み上げない (NGWords.txt)
 
